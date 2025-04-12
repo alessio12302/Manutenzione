@@ -52,7 +52,7 @@
       background-color: #e6e6e6;
     }
 
-    #status, #closed {
+    #status, #closed, #geoError {
       font-size: 20px;
       margin-top: 30px;
       display: none;
@@ -75,7 +75,8 @@
   <button id="openGateBtn" onclick="apriCancello()">Apri Cancello</button>
 
   <div id="status">Il cancello si sta aprendo...</div>
-  <div id="closed">Accesso non disponibile, torna piu tardi.</div>
+  <div id="closed">Accesso non disponibile, torna più tardi.</div>
+  <div id="geoError">Uhm, non sei davanti al cancello…</div>
 
   <div class="note">
     Non premere il pulsante se non sei presente davanti al cancello.<br>
@@ -86,10 +87,31 @@
     const button = document.getElementById("openGateBtn");
     const statusMsg = document.getElementById("status");
     const closedMsg = document.getElementById("closed");
+    const geoErrorMsg = document.getElementById("geoError");
+
+    const latConsentita = 42.67624;
+    const lonConsentita = 13.92359;
+    const raggioInMetri = 3000;
+
+    function distanza(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const rad = Math.PI / 180;
+      const φ1 = lat1 * rad;
+      const φ2 = lat2 * rad;
+      const Δφ = (lat2 - lat1) * rad;
+      const Δλ = (lon2 - lon1) * rad;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c;
+    }
 
     function isAccessAllowed() {
       const now = new Date();
-      const day = now.getDay(); // 0 = domenica, 1 = luned�, ..., 6 = sabato
+      const day = now.getDay();
       const hour = now.getHours();
       return day >= 1 && day <= 6 && hour >= 7 && hour < 17;
     }
@@ -101,23 +123,42 @@
       localStorage.setItem("gateClickTime", Date.now().toString());
     }
 
-    function checkButtonVisibility() {
+    function checkAccess(lat, lon) {
+      const distanzaUtente = distanza(lat, lon, latConsentita, lonConsentita);
       const lastClick = parseInt(localStorage.getItem("gateClickTime") || "0");
       const now = Date.now();
       const secondsPassed = (now - lastClick) / 1000;
 
-      if (secondsPassed < 120) {
-        button.style.display = "none";
-        statusMsg.style.display = "block";
-        closedMsg.style.display = "none";
-      } else if (isAccessAllowed()) {
-        button.style.display = "inline-block";
-        closedMsg.style.display = "none";
-        statusMsg.style.display = "none";
+      if (distanzaUtente <= raggioInMetri) {
+        if (secondsPassed < 120) {
+          button.style.display = "none";
+          statusMsg.style.display = "block";
+        } else if (isAccessAllowed()) {
+          button.style.display = "inline-block";
+        } else {
+          closedMsg.style.display = "block";
+        }
       } else {
-        button.style.display = "none";
-        closedMsg.style.display = "block";
-        statusMsg.style.display = "none";
+        geoErrorMsg.style.display = "block";
+      }
+    }
+
+    function checkButtonVisibility() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            checkAccess(lat, lon);
+          },
+          (error) => {
+            geoErrorMsg.textContent = "Errore nella geolocalizzazione.";
+            geoErrorMsg.style.display = "block";
+          }
+        );
+      } else {
+        geoErrorMsg.textContent = "Il tuo browser non supporta la geolocalizzazione.";
+        geoErrorMsg.style.display = "block";
       }
     }
 
@@ -126,3 +167,5 @@
 
 </body>
 </html>
+
+    
