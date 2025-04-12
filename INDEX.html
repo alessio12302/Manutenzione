@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amadori - Cancello</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #28a745;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+
+    img {
+      max-width: 300px;
+      height: auto;
+      margin-top: 40px;
+    }
+
+    h2 {
+      margin: 20px 0 10px;
+      font-size: 22px;
+      font-weight: normal;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0 30px;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #ffffff;
+      color: #28a745;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #e6e6e6;
+    }
+
+    #status, #closed {
+      font-size: 20px;
+      margin-top: 30px;
+      display: none;
+    }
+
+    .note {
+      margin-top: 40px;
+      font-size: 16px;
+      max-width: 90%;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="IMG_0139.png" alt="Logo Amadori">
+
+  <h2>Allevamento di Morro D Oro</h2>
+  <div class="section-title">Ingresso Manutentori</div>
+
+  <button id="openGateBtn" onclick="apriCancello()">Apri Cancello</button>
+
+  <div id="status">Il cancello si sta aprendo...</div>
+  <div id="closed">Accesso non disponibile, torna piu tardi.</div>
+
+  <div class="note">
+    Non premere il pulsante se non sei presente davanti al cancello.<br>
+    Se non va, contattare il custode.
+  </div>
+
+  <script>
+    const button = document.getElementById("openGateBtn");
+    const statusMsg = document.getElementById("status");
+    const closedMsg = document.getElementById("closed");
+
+    function isAccessAllowed() {
+      const now = new Date();
+      const day = now.getDay(); // 0 = domenica, 1 = lunedì, ..., 6 = sabato
+      const hour = now.getHours();
+      return day >= 1 && day <= 6 && hour >= 7 && hour < 17;
+    }
+
+    function apriCancello() {
+      button.style.display = "none";
+      statusMsg.style.display = "block";
+      fetch("https://maker.ifttt.com/trigger/Cancello/with/key/gnYYkYK-CXpD4U-5ROjNSCKbsiN5HJ8k8dVPoQklN4U");
+      localStorage.setItem("gateClickTime", Date.now().toString());
+    }
+
+    function checkButtonVisibility() {
+      const lastClick = parseInt(localStorage.getItem("gateClickTime") || "0");
+      const now = Date.now();
+      const secondsPassed = (now - lastClick) / 1000;
+
+      if (secondsPassed < 120) {
+        button.style.display = "none";
+        statusMsg.style.display = "block";
+        closedMsg.style.display = "none";
+      } else if (isAccessAllowed()) {
+        button.style.display = "inline-block";
+        closedMsg.style.display = "none";
+        statusMsg.style.display = "none";
+      } else {
+        button.style.display = "none";
+        closedMsg.style.display = "block";
+        statusMsg.style.display = "none";
+      }
+    }
+
+    window.onload = checkButtonVisibility;
+  </script>
+
+</body>
+</html>
