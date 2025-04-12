@@ -46,6 +46,7 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: bold;
+      display: none;
     }
 
     button:hover {
@@ -131,7 +132,6 @@
 
       if (distanzaUtente <= raggioInMetri) {
         if (secondsPassed < 120) {
-          button.style.display = "none";
           statusMsg.style.display = "block";
         } else if (isAccessAllowed()) {
           button.style.display = "inline-block";
@@ -144,6 +144,12 @@
     }
 
     function checkButtonVisibility() {
+      // Non mostrare niente finché non verifichi la posizione
+      button.style.display = "none";
+      statusMsg.style.display = "none";
+      closedMsg.style.display = "none";
+      geoErrorMsg.style.display = "none";
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -167,5 +173,4 @@
 
 </body>
 </html>
-
     
