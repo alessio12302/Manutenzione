@@ -68,7 +68,7 @@
 </head>
 <body>
 
-  <!-- Logo aggiornato con estensione maiuscola -->
+  <!-- Logo -->
   <img src="IMG_0139.PNG" alt="Logo Amadori">
 
   <h2>Allevamento di Morro D Oro</h2>
@@ -95,6 +95,8 @@
     const latConsentita = 42.67624;
     const lonConsentita = 13.92359;
     const raggioInMetri = 1000;
+
+    let geoWatcherId = null;
 
     function distanza(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
@@ -126,7 +128,16 @@
       localStorage.setItem("gateClickTime", Date.now().toString());
     }
 
+    function resetMessaggi() {
+      button.style.display = "none";
+      statusMsg.style.display = "none";
+      closedMsg.style.display = "none";
+      geoErrorMsg.style.display = "none";
+    }
+
     function checkAccess(lat, lon) {
+      resetMessaggi();
+
       const distanzaUtente = distanza(lat, lon, latConsentita, lonConsentita);
       const lastClick = parseInt(localStorage.getItem("gateClickTime") || "0");
       const now = Date.now();
@@ -142,26 +153,24 @@
         }
       } else {
         geoErrorMsg.style.display = "block";
+        geoErrorMsg.textContent = "Uhm, non sei davanti al cancello…";
       }
     }
 
-    function checkButtonVisibility() {
-      button.style.display = "none";
-      statusMsg.style.display = "none";
-      closedMsg.style.display = "none";
-      geoErrorMsg.style.display = "none";
-
+    function startWatchingPosition() {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
+        geoWatcherId = navigator.geolocation.watchPosition(
           (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             checkAccess(lat, lon);
           },
           (error) => {
+            resetMessaggi();
             geoErrorMsg.textContent = "Errore nella geolocalizzazione.";
             geoErrorMsg.style.display = "block";
-          }
+          },
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
         );
       } else {
         geoErrorMsg.textContent = "Il tuo browser non supporta la geolocalizzazione.";
@@ -169,7 +178,22 @@
       }
     }
 
-    window.onload = checkButtonVisibility;
+    function stopWatchingPosition() {
+      if (geoWatcherId !== null) {
+        navigator.geolocation.clearWatch(geoWatcherId);
+        geoWatcherId = null;
+      }
+    }
+
+    window.addEventListener("load", startWatchingPosition);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        startWatchingPosition();
+      } else {
+        stopWatchingPosition();
+      }
+    });
   </script>
 
 </body>
